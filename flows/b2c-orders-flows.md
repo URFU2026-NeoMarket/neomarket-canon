@@ -103,6 +103,8 @@ stateDiagram-v2
 
 ---
 
+<a name="b2c-9-checkout"></a>
+
 ## Flow B2C-9: Checkout -- Создание заказа
 
 ### Последовательность
@@ -461,6 +463,8 @@ X-Service-Key: {b2c_to_b2b_key}
 
 ---
 
+<a name="b2c-10-view-orders"></a>
+
 ## Flow B2C-10: Просмотр и отслеживание заказов
 
 ### GET /api/v1/orders -- Список заказов пользователя
@@ -589,6 +593,8 @@ X-Service-Key: {b2c_to_b2b_key}
 > Заказ другого пользователя тоже возвращает 404 (не 403), чтобы не раскрывать факт существования чужих заказов.
 
 ---
+
+<a name="b2c-11-cancel-order"></a>
 
 ## Flow B2C-11: Отмена заказа
 
@@ -808,6 +814,8 @@ def retry_pending_cancellations():
 
 ---
 
+<a name="b2c-12-handle-events"></a>
+
 ## Flow B2C-12: Обработка событий от B2B (PRODUCT_BLOCKED / PRODUCT_DELETED / SKU_OUT_OF_STOCK)
 
 ### Endpoint (входящий)
@@ -896,6 +904,8 @@ X-Service-Key: {b2b_to_b2c_key}
 **Идемпотентность**: если событие с таким `idempotency_key` уже обработано -- вернуть 200 без повторной обработки.
 
 ---
+
+<a name="b2c-13-fulfill"></a>
 
 ## Flow B2C-13: Fulfill -- списание резерва при DELIVERED
 

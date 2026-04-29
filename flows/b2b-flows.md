@@ -13,6 +13,8 @@ canon_version: 1
 
 ---
 
+<a name="create-product"></a>
+
 ## B2B-1: Создание товара
 
 ### Что происходит
@@ -130,6 +132,8 @@ POST /api/v1/products
 Нет. Товар без SKU не отправляется на модерацию.
 
 ---
+
+<a name="add-sku"></a>
 
 ## B2B-2: Создание SKU
 
@@ -251,6 +255,8 @@ X-Service-Key: {b2b_to_mod_key}
 **Если товар уже имеет SKU** -- SKU просто добавляется, статус не меняется, события не отправляются.
 
 ---
+
+<a name="edit-product"></a>
 
 ## B2B-3: Редактирование товара/SKU
 
@@ -388,6 +394,8 @@ X-Service-Key: {b2b_to_mod_key}
 
 ---
 
+<a name="delete-product"></a>
+
 ## B2B-4: Удаление товара
 
 ### Что происходит
@@ -471,6 +479,8 @@ X-Service-Key: {b2b_to_b2c_key}
    - В `wishlist_items` показывает "Товар удален"
 
 ---
+
+<a name="view-product"></a>
 
 ## B2B-5: Просмотр статуса и блокировки
 
@@ -683,6 +693,8 @@ Endpoint имеет два режима вызова:
 
 ---
 
+<a name="create-invoice"></a>
+
 ## B2B-6: Создание и приёмка накладной
 
 ### Что происходит
@@ -856,6 +868,8 @@ SKU.active_quantity += accepted_quantity
 
 ---
 
+<a name="catalog-for-b2c"></a>
+
 ## B2B-7: Endpoints для B2C (каталог)
 
 ### Что происходит
@@ -956,6 +970,8 @@ X-Service-Key: {b2c_to_b2b_key}
 | Moderation | Получение json_after для diff-а (GET /products/{id}) |
 
 ---
+
+<a name="reserve-sku"></a>
 
 ## B2B-8: Reserve / Unreserve
 
@@ -1198,6 +1214,8 @@ COMMIT;
 
 ---
 
+<a name="apply-moderation"></a>
+
 ## B2B-9: Обработка входящих событий от Moderation
 
 ### Что происходит
@@ -1308,6 +1326,8 @@ X-Service-Key: {b2b_to_b2c_key}
 
 ---
 
+<a name="fulfill-delivery"></a>
+
 ## B2B-10: Списание резерва при доставке (fulfill)
 
 ### Что происходит
@@ -1380,6 +1400,8 @@ B2C вызывает fulfill при переходе заказа в стату�
 
 ---
 
+<a name="list-products"></a>
+
 ## B2B-11: Список товаров продавца
 
 ### Что происходит
@@ -1446,6 +1468,8 @@ GET /api/v1/products
 | Поля SKU | включая cost_price, reserved_quantity | без cost_price, без reserved_quantity |
 
 ---
+
+<a name="delete-sku"></a>
 
 ## B2B-12: Удаление SKU
 

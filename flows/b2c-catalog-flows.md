@@ -25,6 +25,8 @@ canon_version: 1
 
 ---
 
+<a name="b2c-1-catalog-filters"></a>
+
 ## B2C-1: Каталог с фильтрами
 
 ### Что происходит
@@ -186,6 +188,8 @@ GET /api/v1/catalog/facets?category_id={id}&filters[brand]=Apple
 
 ---
 
+<a name="b2c-2-search"></a>
+
 ## B2C-2: Текстовый поиск
 
 ### Что происходит
@@ -232,6 +236,8 @@ B2C проксирует параметр `search` в B2B. B2B выполняе�
 | Только стоп-слова | Поиск выполняется как есть (упрощение -- стоп-слова не фильтруются на MVP) |
 
 ---
+
+<a name="b2c-3-product-card"></a>
 
 ## B2C-3: Карточка товара
 
@@ -345,6 +351,8 @@ URL содержит `sku_id` как query-параметр (аналог mm.ru)
 
 ---
 
+<a name="b2c-4-similar-products"></a>
+
 ## B2C-4: Похожие товары
 
 ### Что происходит
@@ -411,6 +419,8 @@ GET /api/v1/products/{id}/similar?category={category_id}&limit=8
 | В категории только текущий товар | `items: []` (текущий товар исключён) |
 
 ---
+
+<a name="b2c-5-category-nav"></a>
 
 ## B2C-5: Категории и навигация
 

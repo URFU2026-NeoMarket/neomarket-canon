@@ -60,6 +60,8 @@ canon_version: 1
 
 ---
 
+<a name="b2c-6-favorites"></a>
+
 ## Flow B2C-6: Избранное
 
 > **SECURITY**: `user_id` извлекается **ТОЛЬКО** из JWT claims (поле `sub`). **НЕ принимать** в query params или body. Текущая OpenAPI-спека (`neomarket-protocols/b2c/cart/openapi.yaml`) содержит уязвимость (IDOR) -- `user_id` передаётся в query для `POST /favorites/{product_id}`. Исправить перед продакшен-деплоем: убрать из query, брать из JWT. См. `security-guidelines.md`, раздел 10.
@@ -160,6 +162,8 @@ B2B при batch-запросе `GET /products?ids=...` возвращает т�
 
 ---
 
+<a name="b2c-7-subscriptions"></a>
+
 ## Flow B2C-7: Подписки на товар
 
 > **SECURITY**: `user_id` извлекается **ТОЛЬКО** из JWT claims (поле `sub`). **НЕ принимать** в query params или body. Текущая OpenAPI-спека содержит ту же уязвимость, что и B2C-6 -- исправить одновременно. Подписки привязаны строго к авторизованному пользователю: передача `user_id` в query = IDOR (любой сможет подписать другого). См. `security-guidelines.md`, раздел 10.
@@ -222,6 +226,8 @@ CREATE TABLE product_subscriptions (
 | Товар удален после подписки | Подписка остается в БД, но не срабатывает |
 
 ---
+
+<a name="b2c-8-cart"></a>
 
 ## Flow B2C-8: Корзина
 
@@ -453,6 +459,8 @@ Checkout -- это `POST /api/v1/orders` (см. [B2C-9](b2c-orders-flows.md#flow
 
 ---
 
+<a name="b2c-14-banners"></a>
+
 ## Flow B2C-14: Баннеры на главной
 
 ### Что происходит
@@ -531,6 +539,8 @@ CREATE TABLE banner_events (
 | Пустой массив events | 400 `EMPTY_EVENTS` |
 
 ---
+
+<a name="b2c-15-collections"></a>
 
 ## Flow B2C-15: Подборки товаров
 

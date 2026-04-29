@@ -170,6 +170,7 @@ MODERATED ──► (EDITED) ──► PENDING
 
 ---
 
+<a name="receive-product-events"></a>
 ## Flow MOD-1: Получение события от B2B
 
 B2B отправляет событие при создании, изменении или удалении товара продавцом.
@@ -305,6 +306,7 @@ B2B                          Moderation                    B2B (API)
 
 ---
 
+<a name="get-next-card"></a>
 ## Flow MOD-2: Получение карточки из очереди (get-next)
 
 Модератор запрашивает следующую карточку для проверки.
@@ -508,6 +510,7 @@ COMMIT;
 
 ---
 
+<a name="approve-product"></a>
 ## Flow MOD-3: Одобрение товара
 
 ### Endpoint
@@ -658,6 +661,7 @@ B2B при получении:
 
 ---
 
+<a name="soft-block"></a>
 ## Flow MOD-4: Мягкая блокировка
 
 ### Endpoint
@@ -847,6 +851,7 @@ B2B при получении:
 
 ---
 
+<a name="hard-block"></a>
 ## Flow MOD-5: Жёсткая блокировка
 
 Тот же endpoint, что и MOD-4. Определяется по `hard_block` причины блокировки.
@@ -959,6 +964,7 @@ B2C при получении: помечает товары в корзине �
 
 ---
 
+<a name="blocking-reasons"></a>
 ## Flow MOD-6: Справочник причин блокировки
 
 ### Endpoint
