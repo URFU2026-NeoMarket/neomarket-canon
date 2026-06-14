@@ -1,8 +1,8 @@
 ---
 artifact: b2c-orders-flows
 status: aspirational
-last_modified: 2026-04-29
-canon_version: 1
+last_modified: 2026-06-14
+canon_version: 2
 ---
 
 # B2C Orders -- Flows & Schemas
@@ -17,16 +17,19 @@ canon_version: 1
 
 ```
 CREATED ──→ PAID ──→ ASSEMBLING ──→ DELIVERING ──→ DELIVERED
-   │           │                                       │
-   ├──→ CANCELLED                                      └──→ POST /fulfill к B2B
-   │        ▲                                                (списание резерва)
-   │        │
-   ├──→ CANCEL_PENDING ──→ CANCELLED (async retry unreserve)
-   │
-   PAID ──→ CANCELLED
-        │
-        └──→ CANCEL_PENDING
+   │         │           │              │              │
+   │         │           │              │              └──→ POST /fulfill к B2B
+   │         │           │              │                   (списание резерва)
+   └─────────┴───────────┴──────────────┘
+        отмена допустима в любом из 4 статусов (CREATED/PAID/ASSEMBLING/DELIVERING):
+                  │
+                  ├──→ CANCELLED                       (cancel + unreserve OK)
+                  └──→ CANCEL_PENDING ──→ CANCELLED    (unreserve FAIL → async retry)
+
+   DELIVERED / CANCELLED / CANCEL_PENDING ──→ отмена запрещена → 409 CANCEL_NOT_ALLOWED
 ```
+
+> Граница отмены пересмотрена 2026-06-14 — отменяемы 4 статуса (CREATED/PAID/ASSEMBLING/DELIVERING), а не 2. Полное обоснование и переходный режим — в [Flow B2C-11](#b2c-11-cancel-order).
 
 ```mermaid
 stateDiagram-v2
@@ -39,8 +42,12 @@ stateDiagram-v2
 
     CREATED --> CANCELLED: cancel + unreserve OK
     PAID --> CANCELLED: cancel + unreserve OK
+    ASSEMBLING --> CANCELLED: cancel + unreserve OK
+    DELIVERING --> CANCELLED: cancel + unreserve OK
     CREATED --> CANCEL_PENDING: cancel, unreserve FAIL
     PAID --> CANCEL_PENDING: cancel, unreserve FAIL
+    ASSEMBLING --> CANCEL_PENDING: cancel, unreserve FAIL
+    DELIVERING --> CANCEL_PENDING: cancel, unreserve FAIL
     CANCEL_PENDING --> CANCELLED: async retry unreserve OK
     CANCELLED --> [*]
 
@@ -61,11 +68,10 @@ stateDiagram-v2
 | PAID -> ASSEMBLING | Смена статуса через Django Admin | Оператор склада |
 | ASSEMBLING -> DELIVERING | Смена статуса через Django Admin | Оператор склада |
 | DELIVERING -> DELIVERED | Смена статуса через Django Admin + POST /fulfill к B2B | Курьер / оператор |
-| CREATED -> CANCELLED | POST /api/v1/orders/{id}/cancel + POST /unreserve к B2B | Покупатель |
-| PAID -> CANCELLED | POST /api/v1/orders/{id}/cancel + POST /unreserve к B2B | Покупатель |
-| CREATED -> CANCEL_PENDING | POST /api/v1/orders/{id}/cancel, но unreserve упал | Покупатель |
-| PAID -> CANCEL_PENDING | POST /api/v1/orders/{id}/cancel, но unreserve упал | Покупатель |
+| {CREATED, PAID, ASSEMBLING, DELIVERING} -> CANCELLED | POST /api/v1/orders/{id}/cancel + POST /unreserve к B2B (unreserve OK) | Покупатель |
+| {CREATED, PAID, ASSEMBLING, DELIVERING} -> CANCEL_PENDING | POST /api/v1/orders/{id}/cancel, но unreserve упал | Покупатель |
 | CANCEL_PENDING -> CANCELLED | Async retry unreserve (Celery / cron) | Система |
+| {DELIVERED, CANCELLED, CANCEL_PENDING} -> (отмена запрещена) | POST /api/v1/orders/{id}/cancel → 409 CANCEL_NOT_ALLOWED | Покупатель |
 
 **Оплата = mock.** CREATED -> PAID происходит автоматически в рамках checkout. Отдельный endpoint оплаты не нужен. Заказ сразу создается в статусе PAID (CREATED -> PAID -- атомарная операция внутри checkout). Покупатель видит заказ уже как PAID.
 
@@ -610,8 +616,9 @@ X-Service-Key: {b2c_to_b2b_key}
     │                      │  1. Проверка:             │
     │                      │     - заказ существует?   │
     │                      │     - принадлежит user?   │
-    │                      │     - status in           │
-    │                      │       (CREATED, PAID)?    │
+    │                      │     - status in (CREATED, │
+    │                      │       PAID, ASSEMBLING,    │
+    │                      │       DELIVERING)?         │
     │                      │                           │
     │                      │  2. POST /api/v1/unreserve│
     │                      │     {order_id, items}     │
@@ -659,7 +666,7 @@ sequenceDiagram
     participant W as Worker (cron)
 
     U->>B2C: POST /orders/{id}/cancel
-    B2C->>B2C: Проверка: ownership (user_id), status in (CREATED, PAID)
+    B2C->>B2C: Проверка: ownership (user_id), status in (CREATED, PAID, ASSEMBLING, DELIVERING)
     B2C->>B2B: POST /api/v1/unreserve {order_id, items}
 
     alt unreserve OK
@@ -742,12 +749,18 @@ sequenceDiagram
 ```json
 {
   "code": "CANCEL_NOT_ALLOWED",
-  "message": "Отмена невозможна: заказ в статусе ASSEMBLING",
-  "current_status": "ASSEMBLING"
+  "message": "Отмена невозможна: заказ в статусе DELIVERED",
+  "current_status": "DELIVERED"
 }
 ```
 
-Допустимые статусы для отмены: **CREATED**, **PAID**. Заказ в статусе ASSEMBLING, DELIVERING, DELIVERED -- отменить нельзя.
+Допустимые статусы для отмены: **CREATED**, **PAID**, **ASSEMBLING**, **DELIVERING**. Заказ в статусе DELIVERED, CANCELLED, CANCEL_PENDING (или уже отменённый) -- отменить нельзя → 409 `CANCEL_NOT_ALLOWED`.
+
+> **Уточнение от 2026-06-14 (Founder, разворот правила отмены; обсуждено со студентами).**
+> До этой редакции канон разрешал отмену только в `CREATED` и `PAID`, а заказ в `ASSEMBLING`/`DELIVERING` требовал вернуть `409 CANCEL_NOT_ALLOWED`.
+> **Причина пересмотра:** покупатель вправе отменить заказ, пока тот физически не доставлен. Сборка и доставка ещё обратимы — резерв на складе можно освободить через `unreserve`. Жёсткая граница на `PAID` оставляла покупателя без отмены на самом долгом участке (сборка + доставка) и расходилась с openapi B2C.
+> **Правило, действующее с этой редакции:** отмена допустима в `CREATED`, `PAID`, `ASSEMBLING`, `DELIVERING`. Терминальные/необратимые статусы (`DELIVERED`, `CANCELLED`, `CANCEL_PENDING`) → `409 CANCEL_NOT_ALLOWED` с `current_status`. Ветка `unreserve FAIL → CANCEL_PENDING → async retry` работает одинаково для всех четырёх отменяемых статусов.
+> **Прошлые сдачи:** уже выданные approve/reject по правилу отмены остаются в силе и не пересматриваются (как при правке b2b-flows 2026-05-27). **Текущие и новые сдачи/пересдачи** проверяются по новому правилу: реализация, отклоняющая отмену в `ASSEMBLING`/`DELIVERING` (в т.ч. тест, фиксирующий для них `409`), — flow-блокер → REJECT.
 
 ### Вызов B2B: POST /api/v1/unreserve
 
@@ -912,6 +925,12 @@ X-Service-Key: {b2b_to_b2c_key}
 ### Что происходит
 
 Когда оператор через Django Admin переводит заказ в статус `DELIVERED`, B2C вызывает POST /api/v1/fulfill к B2B. Это финальное списание: `reserved_quantity -= quantity`. Без этого `reserved_quantity` копится бесконечно.
+
+> **Взаимоисключение с отменой (добавлено 2026-06-14 вместе с расширением окна отмены до DELIVERING).**
+> Резерв заказа освобождается **ровно один раз**: либо `unreserve` (при отмене), либо `fulfill` (при доставке) — не оба. После того как окно отмены продлили до `ASSEMBLING`/`DELIVERING`, эти два пути пересекаются в `DELIVERING`. Инвариант:
+> - переход `DELIVERING → DELIVERED` (и вызов `fulfill`) выполнять **только** если заказ не отменён; на `CANCELLED`/`CANCEL_PENDING` форвард-переход и `fulfill` запрещены;
+> - проверка статуса и смена — под блокировкой строки заказа (`select_for_update`), чтобы конкурентные «отмена» и «доставлен» не списали резерв дважды;
+> - проиграл `fulfill` (заказ уже отменён) → `fulfill` пропускается, резерв уже освобождён через `unreserve`. И наоборот: заказ уже `DELIVERED` → отмена даёт `409` (см. [Flow B2C-11](#b2c-11-cancel-order)).
 
 ### Последовательность
 
